@@ -25,18 +25,20 @@ jobs:
         # 4. Connect to your private Tailscale network
         tailscale up --authkey="$env:TS_KEY" --accept-routes --unattended
         
-        # 5. Enable Remote Desktop
+        # 5. Enable Remote Desktop and disable strict network level blocking
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
         
-        # 6. Enable Administrator account and set your custom password
-        net user Administrator /active:yes
-        net user Administrator "Adminroot1!"
+        # 6. Create a brand new unlocked Admin account with your exact password
+        $Password = ConvertTo-SecureString "BashRoot!" -AsPlainText -Force
+        New-LocalUser -Name "AdminUser" -Password $Password -FullName "AdminUser" -AccountNeverExpires
+        Add-LocalGroupMember -Group "Administrators" -Member "AdminUser"
+        Add-LocalGroupMember -Group "Remote Desktop Users" -Member "AdminUser"
         
         Write-Host "=========================================================="
-        Write-Host "LOGIN USERNAME: Administrator"
-        Write-Host "LOGIN PASSWORD: Adminroot1!"
+        Write-Host "LOGIN USERNAME: AdminUser"
+        Write-Host "LOGIN PASSWORD: BashRoot!"
         Write-Host "=========================================================="
         
         # Keep the machine alive for 6 hours
